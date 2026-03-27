@@ -26,3 +26,4 @@ tower-http   = { workspace = true }
 
 [dev-dependencies]
 axum-test    = "16.0"
+mockito      = "1.5"
