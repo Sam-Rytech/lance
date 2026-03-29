@@ -13,7 +13,7 @@ pub enum EscrowStatus {
 }
 
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EscrowJob {
     pub client: Address,
     pub freelancer: Address,
