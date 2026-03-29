@@ -45,6 +45,7 @@ async function invokeEscrow(
   method: string,
   args: xdr.ScVal[],
 ): Promise<string> {
+  if (process.env.NEXT_PUBLIC_E2E === "true") return "FAKE_TX_HASH";
   if (!ESCROW_CONTRACT_ID) {
     throw new Error("NEXT_PUBLIC_ESCROW_CONTRACT_ID is not configured.");
   }
