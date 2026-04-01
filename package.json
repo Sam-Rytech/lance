@@ -2,7 +2,12 @@
   "name": "lance",
   "private": true,
   "scripts": {
-    "test:e2e": "playwright test"
+    "dev:web": "npm --prefix apps/web run dev -- --hostname 127.0.0.1 --port 3000 --webpack",
+    "start:web:e2e": "npm --prefix apps/web run build && npm --prefix apps/web run start -- --hostname 127.0.0.1 --port 3000",
+    "dev:backend:e2e": "node tests/e2e/mock-backend.mjs",
+    "dev:backend:e2e:axum": "cargo run -p backend --bin mock_e2e",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
     "@playwright/test": "^1.43.0",
