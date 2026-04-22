@@ -21,5 +21,3 @@ pub fn write_profile(env: &Env, address: &Address, profile: &Profile) {
         .persistent()
         .set(&StorageKey::Profile(address.clone()), profile);
 }
-
-
