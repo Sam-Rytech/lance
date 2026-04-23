@@ -531,6 +531,8 @@ impl EscrowContract {
         milestone.status = MilestoneStatus::Released;
         job.milestones.set(idx, milestone.clone());
 
+        job.released_amount = job.released_amount.saturating_add(milestone.amount);
+
         let next_status = if job.released_amount == job.total_amount {
             EscrowStatus::Completed
         } else {
