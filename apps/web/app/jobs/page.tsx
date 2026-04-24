@@ -5,6 +5,7 @@ import { ArrowUpRight, Clock3, Search, SlidersHorizontal } from "lucide-react";
 import { SiteShell } from "@/components/site-shell";
 import { Stars } from "@/components/stars";
 import { JobCardSkeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/ui/pagination";
 import { useJobBoard } from "@/hooks/use-job-board";
 import { formatDate, formatUsdc, shortenAddress } from "@/lib/format";
 
@@ -15,8 +16,17 @@ const sortOptions = [
 ] as const;
 
 export default function JobsPage() {
-  const { jobs, loading, error, query, activeTag, sortBy, availableTags, actions } =
-    useJobBoard();
+  const {
+    paginatedJobs,
+    loading,
+    error,
+    query,
+    activeTag,
+    sortBy,
+    availableTags,
+    pagination,
+    actions,
+  } = useJobBoard();
 
   return (
     <SiteShell
@@ -92,7 +102,7 @@ export default function JobsPage() {
           </div>
         ) : (
           <div className="grid gap-5 lg:grid-cols-2">
-            {jobs.map((job) => (
+            {paginatedJobs.map((job) => (
               <Link
                 key={job.id}
                 href={`/jobs/${job.id}`}
@@ -177,11 +187,23 @@ export default function JobsPage() {
           </div>
         )}
 
-        {!loading && jobs.length === 0 ? (
+        {!loading && paginatedJobs.length === 0 ? (
           <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white/70 px-6 py-16 text-center text-slate-500">
             No open jobs matched that filter.
           </div>
         ) : null}
+
+        {!loading && jobs.length > 0 && (
+          <div className="mt-8">
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={actions.setPage}
+              pageSize={pagination.pageSize}
+              onPageSizeChange={actions.setPageSize}
+            />
+          </div>
+        )}
       </section>
     </SiteShell>
   );
