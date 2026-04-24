@@ -26,11 +26,20 @@ import {
   shortenAddress,
 } from "@/lib/format";
 import { connectWallet, getConnectedWalletAddress } from "@/lib/stellar";
+import { cn } from "@/lib/utils";
 
 export default function JobDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const workspace = useLiveJobWorkspace(id);
+
+  const { data: job, isLoading: jobLoading, error: jobError } = useJobQuery(id);
+  const { data: bids = [], isLoading: bidsLoading } = useBidsQuery(id);
+  const { data: milestones = [], isLoading: milestonesLoading } = useMilestonesQuery(id);
+  const { data: deliverables = [], isLoading: deliverablesLoading } = useDeliverablesQuery(id);
+  const { data: dispute = null } = useDisputeQuery(id);
+
+  const createBidMutation = useCreateBidMutation(id);
+  const acceptBidMutation = useAcceptBidMutation(id);
   const [viewerAddress, setViewerAddress] = useState<string | null>(null);
   const [proposal, setProposal] = useState("");
   const [deliverableLabel, setDeliverableLabel] = useState("");
@@ -51,38 +60,29 @@ export default function JobDetailsPage() {
 
   async function handleBid(event: React.FormEvent) {
     event.preventDefault();
-    setBusyAction("bid");
-
     try {
       const freelancerAddress =
         (await getConnectedWalletAddress()) ?? "GD...FREELANCER";
-      await api.bids.create(id, {
+      await createBidMutation.mutateAsync({
         freelancer_address: freelancerAddress,
         proposal,
       });
       setProposal("");
-      await workspace.refresh();
     } catch {
       alert("Failed to submit bid");
-    } finally {
-      setBusyAction(null);
     }
   }
 
   async function handleAcceptBid(bidId: string) {
-    if (!workspace.job) return;
-    setBusyAction(`accept-${bidId}`);
-
+    if (!job) return;
     try {
-      const acceptedJob = await api.bids.accept(id, bidId, {
-        client_address: workspace.job.client_address,
+      const acceptedJob = await acceptBidMutation.mutateAsync({
+        bidId,
+        body: { client_address: job.client_address },
       });
-      void workspace.refresh();
       router.push(`/jobs/${acceptedJob.id}/fund`);
     } catch {
       alert("Failed to accept bid");
-    } finally {
-      setBusyAction(null);
     }
   }
 
