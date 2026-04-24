@@ -1,13 +1,12 @@
 import type { NextConfig } from "next";
 import path from "path";
-import webpack from "webpack";
 
 const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(process.cwd(), "../../"),
   },
 
-  webpack(config, { isServer }) {
+  webpack(config, { isServer, webpack }) {
     if (!isServer) {
       // ── 1. Ignore sodium-native entirely on the client ──────────────────────
       // stellar-base pulls in sodium-native as an *optional* Node.js C++ addon.

@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run --coverage"
+    "test": "vitest run --coverage",
+    "clean": "rimraf node_modules .next"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^2.0.1",
@@ -32,17 +33,21 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/webpack": "^5.28.5",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "jsdom": "^26.1.0",
+    "rimraf": "^5.0.7",
     "tailwindcss": "^4.2.2",
     "typescript": "^5",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
-    "jsdom": "^26.1.0",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "webpack": "^5.91.0",
+    "yarn": "^1.22.22"
   },
   "optionalDependencies": {
     "@next/swc-linux-x64-gnu": "16.1.6",
