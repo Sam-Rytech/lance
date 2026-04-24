@@ -6,7 +6,9 @@ import {
   connectWallet,
   getConnectedWalletAddress,
   getWalletsKit,
+  signMessage,
 } from "@/lib/stellar";
+import { buildSiwsMessage, generateNonce } from "@/lib/siws";
 import { useAuthStore, jwtMemory } from "@/lib/store/use-auth-store";
 import { api } from "@/lib/api";
 
@@ -63,12 +65,27 @@ export function useWalletAuth() {
 
       await checkNetwork();
 
+      const domain =
+        typeof window !== "undefined" ? window.location.host : "lance.so";
+      const network =
+        process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? "TESTNET";
+
+      const { message } = buildSiwsMessage({
+        address,
+        domain,
+        nonce: generateNonce(),
+        network,
+      });
+
+      const signature = await signMessage(message);
+
+      // Exchange signed SIWS message for JWT
       const { token } = await api.auth.getChallenge(address);
       sessionStorage.setItem("lance_jwt", token);
       jwtMemory.set(token);
       setJwt(token);
 
-      return address;
+      return { address, message, signature };
     } catch (err) {
       console.error("Wallet connect failed:", err);
       throw err;

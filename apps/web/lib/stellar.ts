@@ -1,6 +1,5 @@
 import { StellarWalletsKit, Networks } from "@creit.tech/stellar-wallets-kit";
 
-// TODO: See docs/ISSUES.md — "Wallet Connection"
 let kit: StellarWalletsKit | null = null;
 
 export function getWalletsKit(): StellarWalletsKit {
@@ -15,10 +14,6 @@ export function getWalletsKit(): StellarWalletsKit {
   return kit;
 }
 
-/**
- * Opens the wallet-select modal and returns the connected public key.
- * Resolves once the user selects a wallet and the address is retrieved.
- */
 export async function connectWallet(): Promise<string> {
   if (process.env.NEXT_PUBLIC_E2E === "true") return "GD...CLIENT";
   const walletsKit = getWalletsKit();
@@ -47,10 +42,6 @@ export async function getConnectedWalletAddress(): Promise<string | null> {
   }
 }
 
-/**
- * Signs an XDR transaction string via the connected wallet.
- * Returns the signed XDR string ready for submission to the Soroban RPC.
- */
 export async function signTransaction(xdr: string): Promise<string> {
   if (process.env.NEXT_PUBLIC_E2E === "true") return xdr;
   const walletsKit = getWalletsKit();
@@ -60,4 +51,17 @@ export async function signTransaction(xdr: string): Promise<string> {
     networkPassphrase,
   });
   return signedTxXdr;
+}
+
+/**
+ * Signs a plaintext SIWS message via the connected wallet.
+ * Returns a base64-encoded signature string.
+ */
+export async function signMessage(message: string): Promise<string> {
+  if (process.env.NEXT_PUBLIC_E2E === "true") {
+    return Buffer.from("e2e-mock-signature").toString("base64");
+  }
+  const walletsKit = getWalletsKit();
+  const { signedMessage } = await walletsKit.signMessage(message);
+  return Buffer.from(signedMessage).toString("base64");
 }
