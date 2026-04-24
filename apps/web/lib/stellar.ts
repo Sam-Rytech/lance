@@ -1,31 +1,213 @@
-import { Horizon, Networks } from "@stellar/stellar-sdk";
+import { Horizon } from "@stellar/stellar-sdk";
+import { Networks, StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
 
 export type StellarNetwork = "public" | "testnet";
 
-type WalletModalOptions = {
-  onWalletSelected: () => Promise<void> | void;
-};
-
-type WalletAddressResult = {
+type WalletSelection = {
+  id: string;
   address: string;
 };
 
-export type WalletKit = {
-  openModal: (options: WalletModalOptions) => Promise<void>;
-  closeModal: () => void;
-  getAddress: () => Promise<WalletAddressResult>;
+type WalletModalOptions = {
+  onWalletSelected?: (option: WalletSelection) => Promise<void> | void;
+  onClosed?: () => void;
 };
 
+type WalletSignTransactionResult = {
+  signedTxXdr?: string;
+  signedXDR?: string;
+};
+
+type WalletSignMessageResult = {
+  signedMessage?: string;
+  signedXDR?: string;
+};
+
+export type WalletKit = {
+  openModal: (options?: WalletModalOptions) => Promise<{ address: string }>;
+  closeModal: () => void;
+  getAddress: () => Promise<{ address: string }>;
+  setNetwork: (network: Networks) => void;
+  signTransaction: (xdr: string) => Promise<string>;
+  signMessage: (message: string) => Promise<string>;
+  disconnect: () => Promise<void>;
+};
+
+const MOCK_WALLET_ADDRESS =
+  "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
+const WALLET_ADDRESS_STORAGE_KEY = "wallet_address";
+const WALLET_TYPE_STORAGE_KEY = "wallet_type";
+const WALLET_KIT_ID = "stellar-wallets-kit";
+
 export const APP_STELLAR_NETWORK: StellarNetwork =
-  (process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet").toUpperCase() === "PUBLIC"
+  (process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet").toLowerCase() === "public"
     ? "public"
     : "testnet";
 
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ||
-  "https://horizon-testnet.stellar.org";
+  (APP_STELLAR_NETWORK === "public"
+    ? "https://horizon.stellar.org"
+    : "https://horizon-testnet.stellar.org");
 
 export const horizonServer = new Horizon.Server(HORIZON_URL);
+
+let isWalletKitInitialized = false;
+
+function isBrowser(): boolean {
+  return typeof window !== "undefined";
+}
+
+function isE2EMode(): boolean {
+  return process.env.NEXT_PUBLIC_E2E === "true";
+}
+
+function getNetworkPassphrase(network = APP_STELLAR_NETWORK): Networks {
+  return network === "public" ? Networks.PUBLIC : Networks.TESTNET;
+}
+
+function storeWalletAddress(address: string): void {
+  if (!isBrowser()) return;
+  localStorage.setItem(WALLET_ADDRESS_STORAGE_KEY, address);
+  localStorage.setItem(WALLET_TYPE_STORAGE_KEY, WALLET_KIT_ID);
+}
+
+function readStoredWalletAddress(): string | null {
+  if (!isBrowser()) return null;
+  return localStorage.getItem(WALLET_ADDRESS_STORAGE_KEY);
+}
+
+async function initializeWalletsKit(): Promise<void> {
+  if (!isBrowser() || isWalletKitInitialized) return;
+
+  const [{ FreighterModule }, { AlbedoModule }, { xBullModule }] =
+    await Promise.all([
+      import("@creit.tech/stellar-wallets-kit/modules/freighter"),
+      import("@creit.tech/stellar-wallets-kit/modules/albedo"),
+      import("@creit.tech/stellar-wallets-kit/modules/xbull"),
+    ]);
+
+  StellarWalletsKit.init({
+    network: getNetworkPassphrase(),
+    selectedWalletId: "freighter",
+    modules: [new FreighterModule(), new AlbedoModule(), new xBullModule()],
+  });
+  isWalletKitInitialized = true;
+}
+
+export function getWalletsKit(): WalletKit {
+  return {
+    openModal: async (options) => {
+      if (!isBrowser() || isE2EMode()) {
+        storeWalletAddress(MOCK_WALLET_ADDRESS);
+        await options?.onWalletSelected?.({
+          id: WALLET_KIT_ID,
+          address: MOCK_WALLET_ADDRESS,
+        });
+        return { address: MOCK_WALLET_ADDRESS };
+      }
+
+      try {
+        await initializeWalletsKit();
+        const result = await StellarWalletsKit.authModal();
+        storeWalletAddress(result.address);
+        await options?.onWalletSelected?.({
+          id: WALLET_KIT_ID,
+          address: result.address,
+        });
+        return result;
+      } catch (error) {
+        options?.onClosed?.();
+        throw error;
+      }
+    },
+
+    closeModal: () => {},
+
+    getAddress: async () => {
+      if (!isBrowser() || isE2EMode()) {
+        return { address: readStoredWalletAddress() ?? MOCK_WALLET_ADDRESS };
+      }
+
+      await initializeWalletsKit();
+      return StellarWalletsKit.getAddress();
+    },
+
+    setNetwork: (network) => {
+      StellarWalletsKit.setNetwork(network);
+    },
+
+    signTransaction: async (xdr) => {
+      if (!isBrowser() || isE2EMode()) return xdr;
+
+      await initializeWalletsKit();
+      const result = (await StellarWalletsKit.signTransaction(xdr, {
+        networkPassphrase: getNetworkPassphrase(),
+      })) as WalletSignTransactionResult;
+
+      return result.signedTxXdr ?? result.signedXDR ?? xdr;
+    },
+
+    signMessage: async (message) => {
+      if (!isBrowser() || isE2EMode()) return "mock-signature";
+
+      await initializeWalletsKit();
+      const result = (await StellarWalletsKit.signMessage(message, {
+        networkPassphrase: getNetworkPassphrase(),
+      })) as WalletSignMessageResult;
+
+      return result.signedMessage ?? result.signedXDR ?? "";
+    },
+
+    disconnect: async () => {
+      if (!isBrowser()) return;
+
+      localStorage.removeItem(WALLET_ADDRESS_STORAGE_KEY);
+      localStorage.removeItem(WALLET_TYPE_STORAGE_KEY);
+      if (isE2EMode()) return;
+
+      await initializeWalletsKit();
+      await StellarWalletsKit.disconnect();
+    },
+  };
+}
+
+export async function getConnectedWalletAddress(): Promise<string | null> {
+  if (!isBrowser()) return null;
+
+  const stored = readStoredWalletAddress();
+  if (isE2EMode()) return stored;
+
+  try {
+    return (await getWalletsKit().getAddress()).address;
+  } catch {
+    return stored;
+  }
+}
+
+export async function connectWallet(): Promise<string> {
+  const { address } = await getWalletsKit().openModal();
+  storeWalletAddress(address);
+  return address;
+}
+
+export function disconnectWallet(): void {
+  if (isBrowser()) {
+    localStorage.removeItem(WALLET_ADDRESS_STORAGE_KEY);
+    localStorage.removeItem(WALLET_TYPE_STORAGE_KEY);
+    window.dispatchEvent(new Event("storage"));
+  }
+
+  void getWalletsKit().disconnect();
+}
+
+export async function signTransaction(xdr: string): Promise<string> {
+  return getWalletsKit().signTransaction(xdr);
+}
+
+export async function signMessage(message: string): Promise<string> {
+  return getWalletsKit().signMessage(message);
+}
 
 export function isValidStellarAddress(address: string): boolean {
   return /^[G][A-Z2-7]{55}$/.test(address);
@@ -35,64 +217,15 @@ export function getWalletNetwork(): StellarNetwork {
   return APP_STELLAR_NETWORK;
 }
 
-export function disconnectWallet(): void {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("wallet_address");
-    localStorage.removeItem("wallet_type");
-    window.dispatchEvent(new Event("storage"));
+export async function getXlmBalance(address: string): Promise<number> {
+  if (!address || isE2EMode()) return 0;
+
+  try {
+    const account = await horizonServer.loadAccount(address);
+    const native = account.balances.find((b) => b.asset_type === "native");
+    return native ? parseFloat(native.balance) : 0;
+  } catch (err) {
+    console.error("Error fetching XLM balance:", err);
+    return 0;
   }
-}
-
-export function getWalletsKit(): WalletKit {
-  return {
-    openModal: async ({ onWalletSelected }) => {
-      await onWalletSelected();
-    },
-
-    closeModal: () => {},
-
-    getAddress: async () => {
-      const stored =
-        typeof window !== "undefined"
-          ? localStorage.getItem("wallet_address")
-          : null;
-
-      return {
-        address:
-          stored ||
-          "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-      };
-    },
-  };
-}
-
-export async function getConnectedWalletAddress(): Promise<string | null> {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("wallet_address");
-  }
-
-  return null;
-}
-
-export async function connectWallet(): Promise<string> {
-  const address =
-    "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
-
-  if (typeof window !== "undefined") {
-    localStorage.setItem("wallet_address", address);
-  }
-
-  return address;
-}
-
-export async function signTransaction(xdr: string): Promise<string> {
-  return xdr;
-}
-
-export async function signMessage(_message: string): Promise<string> {
-  return "mock-signature";
-}
-
-export async function getXlmBalance(_address: string): Promise<number> {
-  return 0;
 }
