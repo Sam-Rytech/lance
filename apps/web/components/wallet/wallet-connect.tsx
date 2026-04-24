@@ -45,10 +45,11 @@ export function WalletConnect() {
   const handleConnect = async () => {
     const kit = (await import("@/lib/stellar")).getWalletsKit();
     kit.openModal({
-      onWalletSelected: async (option) => {
+      onWalletSelected: async () => {
         try {
           kit.closeModal();
-          await connect(option.id as string);
+          const { address: connectedAddress } = await kit.getAddress();
+          await connect(connectedAddress as string);
         } catch (err) {
           console.error("Connection error:", err);
         }
