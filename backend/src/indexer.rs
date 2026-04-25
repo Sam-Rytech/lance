@@ -260,7 +260,7 @@ async fn get_latest_ledger(client: &Client, rpc_url: &str) -> Result<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::method;
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[test]
@@ -281,21 +281,20 @@ mod tests {
     async fn test_get_latest_ledger_recovery() {
         let mock_server = MockServer::start().await;
 
-        // First call fails
-        Mock::given(method("POST"))
-            .respond_with(ResponseTemplate::new(500))
-            .expect(1)
-            .mount(&mock_server)
-            .await;
-
-        // Second call succeeds
+        // Success mock (mount first, will be used after retry)
         Mock::given(method("POST"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "jsonrpc": "2.0",
                 "id": 1,
                 "result": { "sequence": 12345 }
             })))
-            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        // Failure mock (mount last, will be used first)
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(500))
+            .up_to_n_times(1)
             .mount(&mock_server)
             .await;
 
