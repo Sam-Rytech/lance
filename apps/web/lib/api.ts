@@ -281,7 +281,7 @@ export interface ActivityLog {
   job_id?: string | null;
   event_type: string;
   level: string;
-  details: any;
+  details: Record<string, unknown>;
   created_at: string;
 }
 
@@ -295,6 +295,6 @@ export const apiActivity = {
     const path = `/v1/activity/logs${qs.toString() ? `?${qs.toString()}` : ""}`;
     return request<ActivityLog[]>(path);
   },
-  create: (body: { user_address?: string; job_id?: string; event_type: string; level?: string; details?: any }) =>
+  create: (body: { user_address?: string; job_id?: string; event_type: string; level?: string; details?: Record<string, unknown> }) =>
     request<ActivityLog>(`/v1/activity/logs`, { method: "POST", body: JSON.stringify(body) }),
 };

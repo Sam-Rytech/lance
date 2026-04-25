@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 
 // Some libs reference a lowercase `localstorage` global — mirror it to the
 // standard `localStorage` provided by jsdom so tests don't crash.
-(globalThis as any).localstorage = (globalThis as any).localStorage;
+(globalThis as unknown as Record<string, unknown>).localstorage = (globalThis as unknown as Record<string, unknown>).localStorage;
 
 import { vi } from "vitest";
 
@@ -14,7 +14,7 @@ vi.mock("@creit.tech/stellar-wallets-kit", () => ({
 		authModal: async () => ({ address: "GMOCKADDRESS" }),
 		getAddress: async () => ({ address: "GMOCKADDRESS" }),
 		signTransaction: async (xdr: string) => xdr,
-		signMessage: async (m: string) => "signed",
+		signMessage: async () => "signed",
 		disconnect: async () => {},
 		setNetwork: () => {},
 	},

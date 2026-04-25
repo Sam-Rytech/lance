@@ -44,7 +44,7 @@ const localStorageMock = {
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 describe('Wallet Integration', () => {
-  const mockUseWalletSession = useWalletSession as any;
+  const mockUseWalletSession = vi.mocked(useWalletSession);
 
   beforeEach(() => {
     vi.clearAllMocks();

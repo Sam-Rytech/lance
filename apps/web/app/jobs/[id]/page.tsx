@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   CheckCircle2,
-  Clock3,
   FileUp,
   Gavel,
   LoaderCircle,
@@ -24,13 +23,12 @@ import { useLiveJobWorkspace } from "@/hooks/use-live-job-workspace";
 import { api } from "@/lib/api";
 import { releaseFunds, openDispute, getEscrowContractId } from "@/lib/contracts";
 import {
-  formatDate,
   formatDateTime,
   formatUsdc,
   shortenAddress,
 } from "@/lib/format";
 import { connectWallet, getConnectedWalletAddress } from "@/lib/stellar";
-import { cn } from "@/lib/utils";
+
 import { ActivityLogList } from "@/components/activity-log";
 
 
@@ -301,9 +299,6 @@ export default function JobDetailsPage() {
                       onChainJobId={BigInt(workspace.job?.on_chain_job_id ?? 0)}
                       disabled={busyAction !== null}
                       onSubmitted={workspace.refresh}
-                      resolveFreelancerAddress={async () =>
-                        (await getConnectedWalletAddress()) ?? "GD...FREELANCER"
-                      }
                     />
                   </SubmitBidErrorBoundary>
                 </div>

@@ -14,7 +14,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import Link from "next/link";
 import { ActivityLogList } from "@/components/activity-log";
 
