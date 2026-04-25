@@ -48,6 +48,7 @@ import {
 } from "@/lib/format";
 import { getReputationView } from "@/lib/reputation";
 import { connectWallet, getConnectedWalletAddress } from "@/lib/stellar";
+import { ExplorerLink } from "@/components/ui/explorer-link";
 
 const TABS: Array<{ id: ProfileTabId; label: string }> = [
   { id: "overview", label: "Overview" },
