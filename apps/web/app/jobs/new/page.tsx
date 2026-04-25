@@ -47,8 +47,8 @@ export default function NewJobPage() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     try {
-    await ensureWallet();
-    await submit({
+      await ensureWallet();
+      await submit({
         title,
         description,
         budgetUsdc: budget * 10_000_000,
@@ -66,12 +66,20 @@ export default function NewJobPage() {
       eyebrow="Client Intake"
       title="Post a new job with enough clarity that the right freelancer self-selects quickly."
       description="This intake keeps the payload lightweight for the current backend while still pushing teams toward better briefs, cleaner budgets, and milestone discipline."
+    >
+      <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-[2rem] border border-slate-200 bg-white/85 p-6 shadow-[0_25px_80px_-48px_rgba(15,23,42,0.5)] sm:p-8"
+        >
+          <div className="grid gap-6">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Scope
+                Title
               </label>
-              <RichTextEditor id="job-description" value={description} onChange={setDescription} />
-            </div>
+              <input
+                type="text"
+                value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-950 outline-none transition focus:border-amber-400"
                 placeholder="Build a Soroban Smart Contract"
@@ -85,19 +93,7 @@ export default function NewJobPage() {
               <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Scope
               </label>
-<<<<<<< HEAD
               <RichTextEditor id="job-description" value={description} onChange={setDescription} />
-=======
-              <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                className="min-h-[180px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-950 outline-none transition focus:border-amber-400"
-                placeholder="Describe requirements, acceptance criteria, and what counts as a complete milestone."
-                required
-                id="job-description"
-                disabled={isSubmitting || isTxInProgress}
-              />
->>>>>>> upstream/main
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
@@ -200,8 +196,7 @@ export default function NewJobPage() {
           </h2>
           <ul className="mt-6 space-y-4 text-sm leading-6 text-slate-300">
             <li>
-              The transaction follows a secure pipeline: Build &rarr; Simulate &rarr;
-              Sign &rarr; Submit &rarr; Confirm.
+              The transaction follows a secure pipeline: Build → Simulate → Sign → Submit → Confirm.
             </li>
             <li>
               Simulation estimates fees and resources before you sign, so there are
@@ -220,10 +215,7 @@ export default function NewJobPage() {
               clean.
             </li>
             <li>
-              Estimated completion target:{" "}
-              <span className="font-semibold text-slate-100">
-                {estimatedCompletionDate}
-              </span>
+              Estimated completion target: <span className="font-semibold text-slate-100">{estimatedCompletionDate}</span>
             </li>
           </ul>
 

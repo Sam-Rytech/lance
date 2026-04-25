@@ -55,21 +55,7 @@ export default function JobDetailsPage() {
     setViewerAddress(connected);
     return connected;
   }
-  async function handleBid(event: React.FormEvent) {
-    event.preventDefault();
-    try {
-      const freelancerAddress =
-        (await getConnectedWalletAddress()) ?? "GD...FREELANCER";
-      await api.bids.create(id, {
-        freelancer_address: freelancerAddress,
-        proposal,
-      });
-      await workspace.refresh();
-      setProposal("");
-    } catch {
-      alert("Failed to submit bid");
-    }
-  }
+  
   async function handleAcceptBid(bidId: string) {
     if (!workspace.job) return;
     try {
