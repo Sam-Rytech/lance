@@ -26,6 +26,7 @@ pub fn router() -> Router<AppState> {
             post(store_job_metadata).get(retrieve_job_metadata),
         )
         .route("/:id/bids", get(bids::list_bids).post(bids::create_bid))
+        .route("/:id/bids/:bid_id/accept", post(bids::accept_bid))
         .route(
             "/:id/bids/:bid_id/metadata",
             post(store_bid_metadata).get(retrieve_bid_metadata),
