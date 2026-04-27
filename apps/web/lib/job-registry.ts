@@ -106,6 +106,22 @@ export interface SubmitBidResult {
   simulation: SimulationResult;
 }
 
+export interface AcceptBidParams {
+  /** On-chain job id (u64). */
+  jobId: bigint;
+  /** Client Stellar address - must match connected wallet. */
+  clientAddress: string;
+  /** Selected bid id (u64) - the bid to accept. */
+  bidId: bigint;
+}
+
+export interface AcceptBidResult {
+  /** On-chain transaction hash. */
+  txHash: string;
+  /** Simulation diagnostics. */
+  simulation: SimulationResult;
+}
+
 export interface LifecycleMetadata {
   rawXdr?: string;
 }
@@ -266,6 +282,61 @@ export async function submitBid(
   ];
 
   return invokeJobRegistry(freelancerAddress, "submit_bid", args, onStep);
+}
+
+/**
+ * Full lifecycle: Build to Simulate to Sign to Submit to Confirm for accepting a bid.
+ *
+ * @param params  Accept bid arguments.
+ * @param onStep  Callback for each lifecycle step change.
+ * @returns       Confirmed transaction hash + simulation diagnostics.
+ */
+export async function acceptBid(
+  params: AcceptBidParams,
+  onStep?: LifecycleListener,
+): Promise<AcceptBidResult> {
+  if (shouldMockCalls()) {
+    onStep?.("building", "mock");
+    onStep?.("simulating", "mock");
+    onStep?.("signing", "mock");
+    onStep?.("submitting", "mock");
+    onStep?.("confirming", "mock");
+    onStep?.("confirmed", "mock");
+    return {
+      txHash: "FAKE_TX_HASH",
+      simulation: {
+        fee: "100",
+        cpuInstructions: "0",
+        memoryBytes: "0",
+      },
+    };
+  }
+
+  if (!JOB_REGISTRY_CONTRACT_ID) {
+    throw new Error("NEXT_PUBLIC_JOB_REGISTRY_CONTRACT_ID is not configured.");
+  }
+
+  const { jobId, clientAddress, bidId } = params;
+
+  // ── Parameter validation ────────────────────────────────────────────────
+  if (!clientAddress) {
+    throw new Error("clientAddress is required.");
+  }
+  if (jobId <= 0n) {
+    throw new Error("jobId must be greater than zero.");
+  }
+  if (bidId <= 0n) {
+    throw new Error("bidId must be greater than zero.");
+  }
+
+  // Build ScVal arguments for accept_bid(job_id, bid_id, client)
+  const args: xdr.ScVal[] = [
+    nativeToScVal(jobId, { type: "u64" }),
+    nativeToScVal(bidId, { type: "u64" }),
+    Address.fromString(clientAddress).toScVal(),
+  ];
+
+  return invokeJobRegistry(clientAddress, "accept_bid", args, onStep);
 }
 
 /**

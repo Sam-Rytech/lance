@@ -575,6 +575,52 @@ async fn process_event_side_effects(
             .execute(&mut **tx)
             .await?;
         }
+        "dispute" | "disputeopened" => {
+            // DisputeOpened event indexing (Issue #193)
+            // Extract dispute details from event topics and data
+            let event_id = event.get("id").and_then(Value::as_str).unwrap_or_default();
+            let ledger = event.get("ledger").and_then(parse_i64).unwrap_or(0);
+            let contract_id = event
+                .get("contractId")
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+
+            // Topic[1] typically contains the job_id
+            let job_id = topics
+                .and_then(|items| items.get(1))
+                .and_then(Value::as_str)
+                .unwrap_or("0")
+                .parse::<i64>()
+                .unwrap_or(0);
+
+            // Topic[2] typically contains the opened_by address
+            let opened_by = topics
+                .and_then(|items| items.get(2))
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string();
+
+            info!(
+                event_id,
+                ledger, contract_id, job_id, opened_by, "indexed DisputeOpened event",
+            );
+
+            // Insert DisputeOpened event record for tracking
+            // This allows querying which disputes were triggered on-chain
+            sqlx::query(
+                "INSERT INTO indexed_disputes (id, ledger, contract_id, job_id, opened_by, event_type)
+                 VALUES ($1, $2, $3, $4, $5, $6)
+                 ON CONFLICT (id) DO NOTHING",
+            )
+            .bind(event_id)
+            .bind(ledger)
+            .bind(contract_id)
+            .bind(job_id)
+            .bind(opened_by)
+            .bind("DisputeOpened")
+            .execute(&mut **tx)
+            .await?;
+        }
         _ => {}
     }
 
